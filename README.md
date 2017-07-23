@@ -8,17 +8,6 @@ The goals / steps of this project are the following:
 * Make a pipeline that finds lane lines on the road
 * Reflect on your work in a written report
 
-
-[//]: # (Image References)
-
-[imageA]: ./process_images/before.jpg "Before"
-[imageB]: ./process_images/preprocess.jpg "Preprocessed"
-[imageC]: ./process_images/gray.jpg "Gray-Scaled"
-[imageD]: ./process_images/blur.jpg "Blurred"
-[imageE]: ./process_images/canny.jpg "Canny Edges"
-[imageF]: ./process_images/mask.jpg "Masked to Region of Interest"
-[imageG]: ./process_images/hough.jpg "Hough Line Transform"
-[imageH]: ./process_images/result.jpg "Final Result"
 ---
 
 ## Reflection
@@ -29,9 +18,9 @@ My pipeline consisted of 7 main steps.
 
 #### Segmentation by color
 
-![alt text][imageA]
+![alt text](./process_images/before.jpg "Before")
 
-![alt text][imageB]
+![alt text](./process_images/preprocess.jpg "Preprocessed")
 
 By using cv2.cvtColor(), the image is converted into HSV (to extract yellow colors easily), and HLS (to extract white colors easily). cv2.inRange () generate masks for each respective color range, cv2.bitwise_or() then combines the masks, and cv2.bitwise_and() applies the combined mask to the original image.
 
@@ -39,37 +28,37 @@ This preprocessing step was a simple, yet effective, way to to increase the perf
 
 #### Grayscaling
 
-![alt text][imageC]
+![alt text](./process_images/gray.jpg "Gray-Scaled")
 
 The image then is gray-scaled with cv2.cvtColor(). Specific color information is not longer useful after the preprocessing of segmention by color.
 
 #### Gaussian Blur
 
-![alt text][imageD]
+![alt text](./process_images/blur.jpg "Blurred")
 
 Gaussian Blur is applied with the cv2.GaussianBlur() function. This step helps dealing with the noise.
 
 #### Canny Edge Detection
 
-![alt text][imageE]
+![alt text](./process_images/canny.jpg "Canny Edges")
 
 cv2.Canny() is used to extract the edges.
 
 #### Masking
 
-![alt text][imageF]
+![alt text](./process_images/mask.jpg "Masked to Region of Interest")
 
 cv2.fillPoly() and cv2.bitwise_and() are used to only use the Region of Interest (ROI) of the image.
 
 #### Hough Transform
 
-![alt text][imageG]
+![alt text](./process_images/hough.jpg "Hough Line Transform")
 
 cv2.HoughLinesP() returns preliminary lines.
 
 #### Extrapolation
 
-![alt text][imageH]
+![alt text](./process_images/result.jpg "Final Result")
 
 This step has many substeps (implemented inside the draw_lines function).
 
