@@ -13,10 +13,48 @@ import cv2
 
 from moviepy.editor import VideoFileClip
 
+import random
 
-####################################
-### HELPER FUNCTIONS FROM LESSON ###
-####################################
+
+##################
+### Parameters ###
+##################
+
+gaussian_kernel_size = 5
+
+canny_low_threshold = 200
+canny_high_threshold = 250
+
+hough_rho = 1
+hough_theta = np.pi/360
+hough_threshold = 20
+min_line_len = 20
+max_line_gap = 5
+
+w_alpha = 1
+w_beta = 1
+
+
+########################
+### HELPER FUNCTIONS ###
+########################
+
+def preprocess_image(image):
+    """ Extracts only white and yellow elements in the image """
+    img = image.copy()
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+    yellow_lower_bound = np.array([ 20,   50, 50])
+    yellow_upper_bound = np.array([ 40, 255, 255])
+    yellow_mask = cv2.inRange(img, yellow_lower_bound, yellow_upper_bound)
+    img = image.copy()
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+    white_lower_bound = np.array([  0, 230,   0])
+    white_upper_bound = np.array([179, 255, 255])
+    white_mask = cv2.inRange(img, white_lower_bound, white_upper_bound)
+    mask = cv2.bitwise_or(white_mask, yellow_mask)
+    img = cv2.bitwise_and(image, image, mask = mask)
+    return img
+
 
 def grayscale(img):
     """Applies the Grayscale transform
@@ -28,11 +66,11 @@ def grayscale(img):
     # Or use BGR2GRAY if you read an image with cv2.imread()
     # return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     
-def canny(img, low_threshold=50, high_threshold=150):
+def canny(img, low_threshold, high_threshold):
     """Applies the Canny transform"""
     return cv2.Canny(img, low_threshold, high_threshold)
 
-def gaussian_blur(img, kernel_size=5):
+def gaussian_blur(img, kernel_size):
     """Applies a Gaussian Noise kernel"""
     return cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
 
@@ -61,28 +99,106 @@ def region_of_interest(img, vertices):
     return masked_image
 
 
-def draw_lines(img, lines, color=[255, 0, 0], thickness=2):
-    """
-    NOTE: this is the function you might want to use as a starting point once you want to 
-    average/extrapolate the line segments you detect to map out the full
-    extent of the lane (going from the result shown in raw-lines-example.mp4
-    to that shown in P1_example.mp4).  
-    
-    Think about things like separating line segments by their 
-    slope ((y2-y1)/(x2-x1)) to decide which segments are part of the left
-    line vs. the right line.  Then, you can average the position of each of 
-    the lines and extrapolate to the top and bottom of the lane.
-    
-    This function draws `lines` with `color` and `thickness`.    
-    Lines are drawn on the image inplace (mutates the image).
-    If you want to make the lines semi-transparent, think about combining
-    this function with the weighted_img() function below
-    """
+# Initialize Global Variables
+right_m_past = 0.5
+left_m_past = -0.5
+right_b_past = 100
+left_b_past = -100
+image_counter = 0
+def draw_lines(img, lines, color=[255, 0, 0], thickness=20):
+
+    global right_m_past
+    global left_m_past
+    global right_b_past
+    global left_b_past
+    global image_counter
+
+    min_slope = 0.5
+    episilon = 0.0000000000001
+    y_size = img.shape[0]
+    x_size = img.shape[1]
+    center_y = int(y_size/2)
+    center_x = int(x_size/2)
+    y_min = int(y_size*1)
+    y_max = int(y_size*0.65)
+
+    right_x = []
+    left_x = []
+    right_y = []
+    left_y = []
+
+    if lines is None or len(lines) == 0:
+        print("No lines found in frame {}".format(image_counter))
+        x_right_2 = int((y_max-right_b_past)/right_m_past)
+        x_right_1 = int((y_min-right_b_past)/right_m_past)
+        x_left_2 = int((y_max-left_b_past)/left_m_past)
+        x_left_1 = int((y_min-left_b_past)/left_m_past)   
+        cv2.line(img, (x_right_1, y_min), (x_right_2, y_max), color, thickness)
+        cv2.line(img, (x_left_1, y_min), (x_left_2, y_max), color, thickness)
+        return
+
+    for line in lines:
+        for x1,y1,x2,y2 in line:
+
+            # slope (m) and intercept (b)
+            m = (float(y2)-float(y1))/(float(x2)-float(x1) + episilon)
+
+            if np.absolute(m) > min_slope:
+                if m > 0:
+                    right_x.append(x1)
+                    right_x.append(x2)
+                    right_y.append(y1)
+                    right_y.append(y2)
+                elif m < 0:
+                    left_x.append(x1)
+                    left_x.append(x2)
+                    left_y.append(y1)
+                    left_y.append(y2)
+
+    # Polynomial fit if possible
+    if len(right_x) > 0:
+        right_m, right_b = np.polyfit(right_x, right_y, 1)
+    else:
+        right_m = right_m_past
+        right_b = right_b_past
+    if len(left_x) > 0:
+        left_m, left_b = np.polyfit(left_x, left_y, 1)
+    else:
+        left_m = left_m_past
+        left_b = left_b_past
+
+    if image_counter > 0:
+        right_m = right_m*0.55 + right_m_past*0.45
+        right_b = right_b*0.55 + right_b_past*0.45
+        left_m = left_m*0.55 + left_m_past*0.45
+        left_b = left_b*0.55 + left_b_past*0.45
+
+
+    # Update State
+    right_m_past = right_m
+    right_b_past = right_b
+    left_m_past = left_m
+    left_b_past = left_b
+    image_counter += 1
+
+
+    x_right_2 = int((y_max-right_b)/right_m)
+    x_right_1 = int((y_min-right_b)/right_m)
+    x_left_2 = int((y_max-left_b)/left_m)
+    x_left_1 = int((y_min-left_b)/left_m)   
+
+    cv2.line(img, (x_right_1, y_min), (x_right_2, y_max), color, thickness)
+    cv2.line(img, (x_left_1, y_min), (x_left_2, y_max), color, thickness)
+
+
+def draw_segments(img, lines, color=[0, 255, 0], thickness=10):
+    if lines is None or len(lines) == 0:
+        return
     for line in lines:
         for x1,y1,x2,y2 in line:
             cv2.line(img, (x1, y1), (x2, y2), color, thickness)
 
-def hough_lines(img, rho=1, theta=np.pi/180, threshold=2, min_line_len=5, max_line_gap=1):
+def hough_lines(img, rho, theta, threshold, min_line_len, max_line_gap):
     """
     `img` should be the output of a Canny transform.
         
@@ -91,10 +207,11 @@ def hough_lines(img, rho=1, theta=np.pi/180, threshold=2, min_line_len=5, max_li
     lines = cv2.HoughLinesP(img, rho, theta, threshold, np.array([]), minLineLength=min_line_len, maxLineGap=max_line_gap)
     line_img = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
     draw_lines(line_img, lines)
+    draw_segments(line_img, lines)
     return line_img
 
 
-def weighted_img(img, initial_img, alpha=1, beta=1., gamma=0.):
+def weighted_img(img, initial_img, alpha=0.8, beta=1., gamma=0.):
     """
     `img` is the output of the hough_lines(), An image with lines drawn on it.
     Should be a blank image (all black) with lines drawn on it.
@@ -125,22 +242,23 @@ def process_image(img):
         result = RGB image where lines are drawn on lanes
     """
 
-    gray = grayscale(img)
+    pre = preprocess_image(img)
+    gray = grayscale(pre)
     # we further blur the image
-    blur_gray = gaussian_blur(gray, kernel_size = 3)
+    blur_gray = gaussian_blur(gray, kernel_size = gaussian_kernel_size)
     # we detect edges with canny method
-    edges = canny(blur_gray, low_threshold=50, high_threshold=150)
+    edges = canny(blur_gray, low_threshold=canny_low_threshold, high_threshold=canny_high_threshold)
 
     # Vertices are defined relative to the img shape
     y_size = img.shape[0]
     x_size = img.shape[1]
-    vertices = np.array([[(x_size*0.5,y_size*0.55),(x_size*0.5, y_size*0.55), (0, y_size), (x_size,y_size)]], dtype=np.int32)
+    vertices = np.array([[(x_size*0.5,y_size*0.6),(x_size*0.5, y_size*0.6), (x_size*0.1, y_size*0.9), (x_size*0.9,y_size*0.9)]], dtype=np.int32)
 
     # we only consider edges in region of interest (roi)
     masked_edges = region_of_interest(edges, vertices)
     # we use hough method to calculate lines from roi
-    lines = hough_lines(masked_edges, rho=1, theta=np.pi/180, threshold=15, min_line_len=60, max_line_gap=30)
-    result = weighted_img(lines, img, alpha=1, beta=1., gamma=0.)
+    lines = hough_lines(masked_edges, hough_rho, hough_theta, hough_threshold, min_line_len, max_line_gap)
+    result = weighted_img(lines, img, w_alpha, w_beta, 0)
 
     return result
 
@@ -185,11 +303,11 @@ def find_lanes_image(filepath, save_result = True):
     # Printing image info, and displaying it
     print('Image at {} is now: {} with dimensions: {}'.format(filepath,type(image),image.shape))
     plt.imshow(image)
-    plt.show()
+    #plt.show()
 
     result = process_image(image)
     plt.imshow(result)
-    plt.show()
+    #plt.show()
 
     # Save Result in cv2 format (BGR)
     if save_result:
@@ -211,7 +329,7 @@ def parse_args():
     # Set video path if video Mode
     parser.add_argument('--video-path', dest='video_path', type=str, default="test_videos/challenge.mp4")
     # Set image path if image mode
-    parser.add_argument('--image-path', dest='image_path', type=str, default="test_images/solidWhiteCurve.jpg")
+    parser.add_argument('--image-path', dest='image_path', type=str, default="test_images/whiteCarLaneSwitch.jpg")
     # Save result mode
     parser.add_argument('--save-result', dest='save_result', action='store_true',default=True)
     args = parser.parse_args()
