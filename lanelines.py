@@ -120,7 +120,7 @@ def draw_lines(img, lines, color=[255, 0, 0], thickness=20):
     center_y = int(y_size/2)
     center_x = int(x_size/2)
     y_min = int(y_size*1)
-    y_max = int(y_size*0.65)
+    y_max = int(y_size*0.6)
 
     right_x = []
     left_x = []
@@ -329,7 +329,7 @@ def parse_args():
     # Set video path if video Mode
     parser.add_argument('--video-path', dest='video_path', type=str, default="test_videos/challenge.mp4")
     # Set image path if image mode
-    parser.add_argument('--image-path', dest='image_path', type=str, default="test_images/whiteCarLaneSwitch.jpg")
+    parser.add_argument('--image-path', dest='image_path', type=str, default="test_images/solidWhiteRight.jpg")
     # Save result mode
     parser.add_argument('--save-result', dest='save_result', action='store_true',default=True)
     args = parser.parse_args()
