@@ -272,7 +272,7 @@ def process_image(img):
     result = weighted_img(lines, img, w_alpha, w_beta, 0)
 
     #cv2.imwrite("process_images/result.jpg",cv2.cvtColor(result.copy(), cv2.COLOR_RGB2BGR))
-    
+
     return result
 
 ###########################################################
@@ -316,11 +316,11 @@ def find_lanes_image(filepath, save_result = True):
     # Printing image info, and displaying it
     print('Image at {} is now: {} with dimensions: {}'.format(filepath,type(image),image.shape))
     plt.imshow(image)
-    #plt.show()
+    plt.show()
 
     result = process_image(image)
     plt.imshow(result)
-    #plt.show()
+    plt.show()
 
     # Save Result in cv2 format (BGR)
     if save_result:

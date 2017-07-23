@@ -1,4 +1,46 @@
-# **Finding Lane Lines on the Road** 
+# **Finding Lane Lines on the Road**
+
+## Overview
+
+This repository contains a Python program to find lane lines on the road.
+
+## Dependencies
+
+"""
+matplotlib
+numpy
+cv2
+moviepy.editor
+"""
+
+## Running the code
+
+### Demo Run
+
+This will use a default video from test_videos, or default image from test_images.
+The results will be saved in test_videos_output or test_imaged_output respectively.
+
+"""
+python lanelines.py --video-mode
+
+OR
+
+python lanelines.py --image-mode
+""" 
+
+### Using with other videos/images
+
+Notice that the output will be saved in a folder like this:  [FOLDER_NAME]_output
+
+"""
+python lanelines.py --video-mode --video-path [FOLDER_NAME]/[VIDEO]
+
+OR
+
+python lanelines.py --image-mode --image-path [FOLDER_NAME]/[IMAGE]
+""" 
+
+## Reflection
 
 ---
 
@@ -9,8 +51,6 @@ The goals / steps of this project are the following:
 * Reflect on your work in a written report
 
 ---
-
-## Reflection
 
 ### Pipeline Description
 
