@@ -1,53 +1,97 @@
 # **Finding Lane Lines on the Road** 
-[![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
-<img src="examples/laneLines_thirdPass.jpg" width="480" alt="Combined Image" />
-
-Overview
 ---
 
-When we drive, we use our eyes to decide where to go.  The lines on the road that show us where the lanes are act as our constant reference for where to steer the vehicle.  Naturally, one of the first things we would like to do in developing a self-driving car is to automatically detect lane lines using an algorithm.
+**Purpose**
 
-In this project you will detect lane lines in images using Python and OpenCV.  OpenCV means "Open-Source Computer Vision", which is a package that has many useful tools for analyzing images.  
-
-To complete the project, two files will be submitted: a file containing project code and a file containing a brief write up explaining your solution. We have included template files to be used both for the [code](https://github.com/udacity/CarND-LaneLines-P1/blob/master/P1.ipynb) and the [writeup](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md).The code file is called P1.ipynb and the writeup template is writeup_template.md 
-
-To meet specifications in the project, take a look at the requirements in the [project rubric](https://review.udacity.com/#!/rubrics/322/view)
+The goals / steps of this project are the following:
+* Make a pipeline that finds lane lines on the road
+* Reflect on your work in a written report
 
 
-Creating a Great Writeup
----
-For this project, a great writeup should provide a detailed response to the "Reflection" section of the [project rubric](https://review.udacity.com/#!/rubrics/322/view). There are three parts to the reflection:
+[//]: # (Image References)
 
-1. Describe the pipeline
-
-2. Identify any shortcomings
-
-3. Suggest possible improvements
-
-We encourage using images in your writeup to demonstrate how your pipeline works.  
-
-All that said, please be concise!  We're not looking for you to write a book here: just a brief description.
-
-You're not required to use markdown for your writeup.  If you use another method please just submit a pdf of your writeup. Here is a link to a [writeup template file](https://github.com/udacity/CarND-LaneLines-P1/blob/master/writeup_template.md). 
-
-
-The Project
+[imageA]: ./process_images/before.jpg "Before"
+[imageB]: ./process_images/preprocess.jpg "Preprocessed"
+[imageC]: ./process_images/gray.jpg "Gray-Scaled"
+[imageD]: ./process_images/blur.jpg "Blurred"
+[imageE]: ./process_images/canny.jpg "Canny Edges"
+[imageF]: ./process_images/mask.jpg "Masked to Region of Interest"
+[imageG]: ./process_images/hough.jpg "Hough Line Transform"
+[imageH]: ./process_images/result.jpg "Final Result"
 ---
 
-## If you have already installed the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) you should be good to go!   If not, you should install the starter kit to get started on this project. ##
+## Reflection
 
-**Step 1:** Set up the [CarND Term1 Starter Kit](https://classroom.udacity.com/nanodegrees/nd013/parts/fbf77062-5703-404e-b60c-95b78b2f3f9e/modules/83ec35ee-1e02-48a5-bdb7-d244bd47c2dc/lessons/8c82408b-a217-4d09-b81d-1bda4c6380ef/concepts/4f1870e0-3849-43e4-b670-12e6f2d4b7a7) if you haven't already.
+### Pipeline Description
 
-**Step 2:** Open the code in a Jupyter Notebook
+My pipeline consisted of 7 main steps.
 
-You will complete the project code in a Jupyter notebook.  If you are unfamiliar with Jupyter Notebooks, check out <A HREF="https://www.packtpub.com/books/content/basics-jupyter-notebook-and-python" target="_blank">Cyrille Rossant's Basics of Jupyter Notebook and Python</A> to get started.
+#### Segmentation by color
 
-Jupyter is an Ipython notebook where you can run blocks of code and see results interactively.  All the code for this project is contained in a Jupyter notebook. To start Jupyter in your browser, use terminal to navigate to your project directory and then run the following command at the terminal prompt (be sure you've activated your Python 3 carnd-term1 environment as described in the [CarND Term1 Starter Kit](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) installation instructions!):
+![alt text][imageA]
 
-`> jupyter notebook`
+![alt text][imageB]
 
-A browser window will appear showing the contents of the current directory.  Click on the file called "P1.ipynb".  Another browser window will appear displaying the notebook.  Follow the instructions in the notebook to complete the project.  
+By using cv2.cvtColor(), the image is converted into HSV (to extract yellow colors easily), and HLS (to extract white colors easily). cv2.inRange () generate masks for each respective color range, cv2.bitwise_or() then combines the masks, and cv2.bitwise_and() applies the combined mask to the original image.
 
-**Step 3:** Complete the project and submit both the Ipython notebook and the project writeup
+This preprocessing step was a simple, yet effective, way to to increase the performance of the pipeline.
+
+#### Grayscaling
+
+![alt text][imageC]
+
+The image then is gray-scaled with cv2.cvtColor(). Specific color information is not longer useful after the preprocessing of segmention by color.
+
+#### Gaussian Blur
+
+![alt text][imageD]
+
+Gaussian Blur is applied with the cv2.GaussianBlur() function. This step helps dealing with the noise.
+
+#### Canny Edge Detection
+
+![alt text][imageE]
+
+cv2.Canny() is used to extract the edges.
+
+#### Masking
+
+![alt text][imageF]
+
+cv2.fillPoly() and cv2.bitwise_and() are used to only use the Region of Interest (ROI) of the image.
+
+#### Hough Transform
+
+![alt text][imageG]
+
+cv2.HoughLinesP() returns preliminary lines.
+
+#### Extrapolation
+
+![alt text][imageH]
+
+This step has many substeps (implemented inside the draw_lines function).
+
+First, the slopes of the Hough Transfrom lines are calculated. If one of the slopes is too flat, that specific line is discarded. Then, each line is categorized into "right" or "left" lines, based on the sign of its slope. For each side, the points of the lines are used in np.polyfit to produce a first order Linear Regression that gives the best estimate of the slope and bias.
+
+To stabilize the system, the program remembers the last state (past slope, past bias) for each side. The effective slope is a linear combination of the current slope and the past slope. This could be considered as a low pass filter, and prevents abrupt changes in the slope caused by outliers.
+
+### Potential shortcomings of current Pipeline
+
+
+* The current parameters were selected to work in a small set of data. It is possible that the same parameters will not work for another dataset with different light conditions, image scale, noise profile, etc.
+
+* First order linear regressions, as used in the pipeline, are not fit for very sharp turns, or any other road condition with high curvature.
+
+* The current pipeline only detects the lane in front of the car, not adjacent lanes.
+
+
+
+### Possible improvements the Pipeline
+
+* The parameters of the pipeline could be learned through Machine Learning, or use an end-to-end method altogether.
+
+
+* The current implementation treats everything as individual functions. Putting these functions into a class would be recommended as it gives more strucuture to the code, and prevents bad practices (such a using global variables).
 

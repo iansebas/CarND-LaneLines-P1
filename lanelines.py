@@ -242,13 +242,22 @@ def process_image(img):
         result = RGB image where lines are drawn on lanes
     """
 
-    pre = preprocess_image(img)
-    gray = grayscale(pre)
-    # we further blur the image
-    blur_gray = gaussian_blur(gray, kernel_size = gaussian_kernel_size)
-    # we detect edges with canny method
-    edges = canny(blur_gray, low_threshold=canny_low_threshold, high_threshold=canny_high_threshold)
+    #cv2.imwrite("process_images/before.jpg",cv2.cvtColor(img.copy(), cv2.COLOR_RGB2BGR))
 
+    pre = preprocess_image(img)
+    #cv2.imwrite("process_images/preprocess.jpg",cv2.cvtColor(pre.copy(), cv2.COLOR_RGB2BGR))
+
+    gray = grayscale(pre)
+    #cv2.imwrite("process_images/gray.jpg",gray)
+
+    # we further blur the image
+    blurred = gaussian_blur(gray, kernel_size = gaussian_kernel_size)
+
+    #cv2.imwrite("process_images/blur.jpg",blurred)
+    # we detect edges with canny method
+    edges = canny(blurred, low_threshold=canny_low_threshold, high_threshold=canny_high_threshold)
+
+    #cv2.imwrite("process_images/canny.jpg",edges)
     # Vertices are defined relative to the img shape
     y_size = img.shape[0]
     x_size = img.shape[1]
@@ -256,10 +265,14 @@ def process_image(img):
 
     # we only consider edges in region of interest (roi)
     masked_edges = region_of_interest(edges, vertices)
+    #cv2.imwrite("process_images/mask.jpg",masked_edges)
+
     # we use hough method to calculate lines from roi
     lines = hough_lines(masked_edges, hough_rho, hough_theta, hough_threshold, min_line_len, max_line_gap)
     result = weighted_img(lines, img, w_alpha, w_beta, 0)
 
+    #cv2.imwrite("process_images/result.jpg",cv2.cvtColor(result.copy(), cv2.COLOR_RGB2BGR))
+    
     return result
 
 ###########################################################
@@ -329,7 +342,7 @@ def parse_args():
     # Set video path if video Mode
     parser.add_argument('--video-path', dest='video_path', type=str, default="test_videos/challenge.mp4")
     # Set image path if image mode
-    parser.add_argument('--image-path', dest='image_path', type=str, default="test_images/solidWhiteRight.jpg")
+    parser.add_argument('--image-path', dest='image_path', type=str, default="test_images/whiteCarLaneSwitch.jpg")
     # Save result mode
     parser.add_argument('--save-result', dest='save_result', action='store_true',default=True)
     args = parser.parse_args()
