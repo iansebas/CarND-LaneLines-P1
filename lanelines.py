@@ -45,13 +45,13 @@ def preprocess_image(image):
     img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
     yellow_lower_bound = np.array([ 20,   50, 50])
     yellow_upper_bound = np.array([ 40, 255, 255])
-    yellow_mask = cv2.inRange(img, yellow_lower_bound, yellow_upper_bound)
+    yellow = cv2.inRange(img, yellow_lower_bound, yellow_upper_bound)
     img = image.copy()
     img = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
     white_lower_bound = np.array([  0, 230,   0])
     white_upper_bound = np.array([179, 255, 255])
-    white_mask = cv2.inRange(img, white_lower_bound, white_upper_bound)
-    mask = cv2.bitwise_or(white_mask, yellow_mask)
+    white = cv2.inRange(img, white_lower_bound, white_upper_bound)
+    mask = cv2.bitwise_or(white, yellow)
     img = cv2.bitwise_and(image, image, mask = mask)
     return img
 
@@ -117,8 +117,6 @@ def draw_lines(img, lines, color=[255, 0, 0], thickness=20):
     episilon = 0.0000000000001
     y_size = img.shape[0]
     x_size = img.shape[1]
-    center_y = int(y_size/2)
-    center_x = int(x_size/2)
     y_min = int(y_size*1)
     y_max = int(y_size*0.6)
 
@@ -156,12 +154,12 @@ def draw_lines(img, lines, color=[255, 0, 0], thickness=20):
                     left_y.append(y2)
 
     # Polynomial fit if possible
-    if len(right_x) > 0:
+    if len(right_y) > 0:
         right_m, right_b = np.polyfit(right_x, right_y, 1)
     else:
         right_m = right_m_past
         right_b = right_b_past
-    if len(left_x) > 0:
+    if len(left_y) > 0:
         left_m, left_b = np.polyfit(left_x, left_y, 1)
     else:
         left_m = left_m_past
