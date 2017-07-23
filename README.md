@@ -1,4 +1,4 @@
-# **Finding Lane Lines on the Road**
+# Finding Lane Lines on the Road
 
 ## Overview
 
@@ -6,12 +6,11 @@ This repository contains a Python program to find lane lines on the road.
 
 ## Dependencies
 
-"""
-matplotlib
-numpy
-cv2
-moviepy.editor
-"""
+* Python 3.5
+* NumPy
+* OpenCV
+* Matplotlib
+* MoviePy
 
 ## Running the code
 
@@ -100,11 +99,11 @@ cv2.HoughLinesP() returns preliminary lines.
 
 ![alt text](./process_images/result.jpg "Final Result")
 
-This step has many substeps (implemented inside the draw_lines function).
-
 First, the slopes of the Hough Transfrom lines are calculated. If one of the slopes is too flat, that specific line is discarded. Then, each line is categorized into "right" or "left" lines, based on the sign of its slope. For each side, the points of the lines are used in np.polyfit to produce a first order Linear Regression that gives the best estimate of the slope and bias.
 
 To stabilize the system, the program remembers the last state (past slope, past bias) for each side. The effective slope is a linear combination of the current slope and the past slope. This could be considered as a low pass filter, and prevents abrupt changes in the slope caused by outliers.
+
+In the image above, the green region are the preliminary Hough Lines, while the red regions are the effective detected lane lines.
 
 ### Potential shortcomings of current Pipeline
 
